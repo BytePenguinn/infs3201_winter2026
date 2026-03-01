@@ -1,21 +1,76 @@
+const { MongoClient } = require('mongodb')
 const fs = require('fs/promises')
 
+const uri = 'mongodb://127.0.0.1:27017'
+const client = new MongoClient(uri)
+const dbName = 'scheduleDB'
+let db
+
+async function connect() {
+    await client.connect()
+    db = client.db(dbName)
+}
+
+async function disconnect() {
+    await client.close()
+}
+
 /**
- * Reads a file from the file system and parses it as JSON.
- * Copied from original loadData
+ * Employees Collection Methods
  */
-async function loadData(file) {
-    let raw = await fs.readFile(file, 'utf8')
+async function getAllEmployees() {
+    return await db.collection('employees').find().toArray()
+}
+
+async function getEmployeeById(eid) {
+    return await db.collection('employees').findOne({ employeeId: eid })
+}
+
+async function addEmployee(employee) {
+    await db.collection('employees').insertOne(employee)
+}
+
+/**
+ * Shifts Collection Methods
+ */
+async function getShiftById(sid) {
+    return await db.collection('shifts').findOne({ shiftId: sid })
+}
+
+/**
+ * Assignments Collection Methods
+ */
+async function getAssignment(eid, sid) {
+    return await db.collection('assignments').findOne({ employeeId: eid, shiftId: sid })
+}
+
+async function getAssignmentsByEmployee(eid) {
+    return await db.collection('assignments').find({ employeeId: eid }).toArray()
+}
+
+async function addAssignment(assignment) {
+    await db.collection('assignments').insertOne(assignment)
+}
+
+/**
+ * Configuration Methods
+ * Config remains a file system item instead of a database item.
+ */
+async function getConfig() {
+    let raw = await fs.readFile('config.json', 'utf8')
     let data = JSON.parse(raw)
     return data
 }
 
-/**
- * Writes data to a file.
- * Helper added to replace direct fs.writeFile calls in logic
- */
-async function saveData(file, data) {
-    await fs.writeFile(file, JSON.stringify(data, null, 2))
+module.exports = {
+    connect,
+    disconnect,
+    getAllEmployees,
+    getEmployeeById,
+    addEmployee,
+    getShiftById,
+    getAssignment,
+    getAssignmentsByEmployee,
+    addAssignment,
+    getConfig
 }
-
-module.exports = { loadData, saveData }

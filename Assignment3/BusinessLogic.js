@@ -1,13 +1,11 @@
 const persistence = require('./Persistence')
 
+async function connect() {
+    await persistence.connect()
+}
 
-function doesIdExist(id, dataArray, propertyName) {
-    for (const item of dataArray) {
-        if (item[propertyName] === id) {
-            return true
-        }
-    }
-    return false
+async function disconnect() {
+    await persistence.disconnect()
 }
 
 function isValidPhone(phone) {
@@ -41,27 +39,25 @@ function isValidName(name) {
  * @returns {number} The duration in hours
  */
 function computeShiftDuration(startTime, endTime) {
-    const start = new Date("1970-01-01 " + startTime);
-    const end = new Date("1970-01-01 " + endTime);
+    const start = new Date("1970-01-01 " + startTime)
+    const end = new Date("1970-01-01 " + endTime)
     
-    const diffMs = end - start;
+    const diffMs = end - start
+    const diffHrs = diffMs / (1000 * 60 * 60)
     
-    const diffHrs = diffMs / (1000 * 60 * 60);
-    
-    return diffHrs;
+    return diffHrs
 }
-
 
 async function getEmployees() {
-    return await persistence.loadData('employees.json')
+    return await persistence.getAllEmployees()
 }
 
-async function getShifts() {
-    return await persistence.loadData('shifts.json')
+async function getShiftById(sid) {
+    return await persistence.getShiftById(sid)
 }
 
-async function getAssignments() {
-    return await persistence.loadData('assignments.json')
+async function getAssignmentsByEmployee(eid) {
+    return await persistence.getAssignmentsByEmployee(eid)
 }
 
 async function addEmployeeLogic(name, phone) {
@@ -72,10 +68,10 @@ async function addEmployeeLogic(name, phone) {
         return 'Invalid phone format'
     }
 
-    const data = await persistence.loadData('employees.json')
+    const employees = await persistence.getAllEmployees()
     let max = 0
     
-    for (const e of data) {
+    for (const e of employees) {
         const id = Number(e.employeeId.slice(1))
         if (id > max) {
             max = id
@@ -85,8 +81,7 @@ async function addEmployeeLogic(name, phone) {
     const nextId = `E${String(max + 1).padStart(3, '0')}`
     const employee = { employeeId: nextId, name, phone }
     
-    data.push(employee)
-    await persistence.saveData('employees.json', data)
+    await persistence.addEmployee(employee)
     return 'Employee added...'
 }
 
@@ -98,49 +93,31 @@ async function assignShiftLogic(eid, sid) {
         return 'Invalid Shift ID format'
     }
 
-    const employees = await persistence.loadData('employees.json')
-    const shifts = await persistence.loadData('shifts.json')
-    const assignments = await persistence.loadData('assignments.json')
-    const config = await persistence.loadData('config.json') 
-    
-    const employeeExists = doesIdExist(eid, employees, 'employeeId')
-    const shiftExists = doesIdExist(sid, shifts, 'shiftId')
-    
-    if (!employeeExists) {
+    const emp = await persistence.getEmployeeById(eid)
+    if (!emp) {
         return 'Employee does not exist'
     }
     
-    if (!shiftExists) {
+    const targetShift = await persistence.getShiftById(sid)
+    if (!targetShift) {
         return 'Shift does not exist'
     }
     
-    for (const a of assignments) {
-        if (a.employeeId === eid && a.shiftId === sid) {
-            return 'Employee already assigned to shift'
-        }
+    const existingAssignment = await persistence.getAssignment(eid, sid)
+    if (existingAssignment) {
+        return 'Employee already assigned to shift'
     }
 
+    const config = await persistence.getConfig() 
+    let newShiftDuration = computeShiftDuration(targetShift.startTime, targetShift.endTime)
 
-    let targetShift = null;
-    for (const s of shifts) {
-        if (s.shiftId === sid) {
-            targetShift = s;
-        }
-    }
-
-    let newShiftDuration = computeShiftDuration(targetShift.startTime, targetShift.endTime);
-
-    let currentHours = 0;
+    let currentHours = 0
+    const employeeAssignments = await persistence.getAssignmentsByEmployee(eid)
     
-    for (const a of assignments) {
-        if (a.employeeId === eid) {
-            for (const s of shifts) {
-                if (s.shiftId === a.shiftId) {
-                    if (s.date === targetShift.date) {
-                        currentHours += computeShiftDuration(s.startTime, s.endTime);
-                    }
-                }
-            }
+    for (const a of employeeAssignments) {
+        const s = await persistence.getShiftById(a.shiftId)
+        if (s && s.date === targetShift.date) {
+            currentHours += computeShiftDuration(s.startTime, s.endTime)
         }
     }
 
@@ -148,17 +125,17 @@ async function assignShiftLogic(eid, sid) {
         return `Unable to assign shift: Employee reaches ${currentHours + newShiftDuration} hours on ${targetShift.date}. Limit is ${config.maxDailyHours}.`
     }
     
-    
     const newAssignment = { employeeId: eid, shiftId: sid }
-    assignments.push(newAssignment)
-    await persistence.saveData('assignments.json', assignments)
+    await persistence.addAssignment(newAssignment)
     return 'Shift Recorded'
 }
 
 module.exports = {
+    connect,
+    disconnect,
     getEmployees,
-    getShifts,
-    getAssignments,
+    getShiftById,
+    getAssignmentsByEmployee,
     addEmployeeLogic,
     assignShiftLogic,
     isValidEmployeeId

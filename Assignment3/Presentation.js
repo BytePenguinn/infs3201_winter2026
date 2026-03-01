@@ -37,23 +37,21 @@ async function viewEmployeeSchedule(eid) {
         return
     }
 
-    const assignments = await logic.getAssignments()
-    const shifts = await logic.getShifts()
+    const assignments = await logic.getAssignmentsByEmployee(eid)
     
     console.log('date,startTime,endTime')
     
     for (const a of assignments) {
-        if (a.employeeId === eid) {
-            for (const s of shifts) {
-                if (s.shiftId === a.shiftId) {
-                    console.log(`${s.date},${s.startTime},${s.endTime}`)
-                }
-            }
+        const s = await logic.getShiftById(a.shiftId)
+        if (s) {
+            console.log(`${s.date},${s.startTime},${s.endTime}`)
         }
     }
 }
 
 async function app() {
+    await logic.connect()
+    
     while (true) {
         console.log('1. Show all employees')
         console.log('2. Add new employee')
@@ -77,6 +75,7 @@ async function app() {
             await viewEmployeeSchedule(eid)
         }
         else if (selection === '5') {
+            await logic.disconnect()
             break
         }
         else {
