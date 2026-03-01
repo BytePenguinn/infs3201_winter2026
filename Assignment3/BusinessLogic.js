@@ -59,7 +59,7 @@ function isValidShiftId(shiftId) {
  */
 function isValidName(name) {
     const nameRegex = /^[a-zA-Z\s\-']+$/
-    return nameRegex.test(name) && name.trim().length > 0
+    return nameRegex.test(name) && name.length > 0
 }
 
 /**
@@ -137,6 +137,16 @@ async function getEmployees() {
 }
 
 /**
+ * Retrieves a single employee by their ID.
+ * 
+ * @param {string} eid - The employee ID.
+ * @returns {Promise<Object|null>} The employee object.
+ */
+async function getEmployeeById(eid) {
+    return await persistence.getEmployeeById(eid)
+}
+
+/**
  * Retrieves a single shift by its ID.
  * 
  * @param {string} sid - The shift ID.
@@ -191,6 +201,31 @@ async function getEmployeeDetails(eid) {
 }
 
 /**
+ * Validates and updates an employee's details in the database.
+ * 
+ * @param {string} eid - The employee ID.
+ * @param {string} name - The submitted name.
+ * @param {string} phone - The submitted phone number.
+ * @returns {Promise<Object>} Object with success status and optional message.
+ */
+async function editEmployeeLogic(eid, name, phone) {
+    const trimmedName = (name || '').trim()
+    const trimmedPhone = (phone || '').trim()
+
+    if (!isValidName(trimmedName)) {
+        return { success: false, message: 'Invalid or empty name provided.' }
+    }
+
+    if (!isValidPhone(trimmedPhone)) {
+        return { success: false, message: 'Invalid phone format. Must be 4 digits, a dash, then 4 digits (e.g., 5555-1234).' }
+    }
+
+    await persistence.updateEmployee(eid, trimmedName, trimmedPhone)
+
+    return { success: true }
+}
+
+/**
  * Adds a new employee to the system with auto-incremented ID formatting.
  * 
  * @param {string} name - The name of the new employee.
@@ -198,10 +233,13 @@ async function getEmployeeDetails(eid) {
  * @returns {Promise<string>} A status message regarding the operation.
  */
 async function addEmployeeLogic(name, phone) {
-    if (!isValidName(name)) {
+    const trimmedName = (name || '').trim()
+    const trimmedPhone = (phone || '').trim()
+
+    if (!isValidName(trimmedName)) {
         return 'Invalid name format'
     }
-    if (!isValidPhone(phone)) {
+    if (!isValidPhone(trimmedPhone)) {
         return 'Invalid phone format'
     }
 
@@ -216,7 +254,7 @@ async function addEmployeeLogic(name, phone) {
     }
 
     const nextId = `E${String(max + 1).padStart(3, '0')}`
-    const employee = { employeeId: nextId, name, phone }
+    const employee = { employeeId: nextId, name: trimmedName, phone: trimmedPhone }
     
     await persistence.addEmployee(employee)
     return 'Employee added...'
@@ -278,9 +316,11 @@ module.exports = {
     connect,
     disconnect,
     getEmployees,
+    getEmployeeById,
     getShiftById,
     getAssignmentsByEmployee,
     getEmployeeDetails,
+    editEmployeeLogic,
     addEmployeeLogic,
     assignShiftLogic,
     isValidEmployeeId

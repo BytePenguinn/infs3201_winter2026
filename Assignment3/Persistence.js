@@ -55,6 +55,21 @@ async function addEmployee(employee) {
 }
 
 /**
+ * Updates an existing employee's name and phone number in the database.
+ * 
+ * @param {string} eid - The employee ID.
+ * @param {string} name - The updated name.
+ * @param {string} phone - The updated phone number.
+ * @returns {Promise<void>}
+ */
+async function updateEmployee(eid, name, phone) {
+    await db.collection('employees').updateOne(
+        { employeeId: eid },
+        { $set: { name: name, phone: phone } }
+    )
+}
+
+/**
  * Retrieves a single shift document by its shift ID.
  * 
  * @param {string} sid - The formatted shift ID (e.g., S001).
@@ -113,6 +128,7 @@ module.exports = {
     getAllEmployees,
     getEmployeeById,
     addEmployee,
+    updateEmployee,
     getShiftById,
     getAssignment,
     getAssignmentsByEmployee,

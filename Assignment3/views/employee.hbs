@@ -27,7 +27,7 @@
             padding: 4px 15px 4px 0;
         }
         .highlight-yellow {
-            background-color: rgba(241, 250, 140, 0.4); /* Muted yellow to match dark theme readability */
+            background-color: rgba(241, 250, 140, 0.4);
             color: #f8f8f2; 
         }
         .header-section {
@@ -44,7 +44,8 @@
     <div class="header-section">
         <p>Name: {{employee.name}}</p>
         <p>Phone: {{employee.phone}}</p>
-        <a href="/employee/{{employee.employeeId}}/edit">Edit Details</a>
+        <!-- Updated link to match the requested route -->
+        <a href="/edit/{{employee.employeeId}}">Edit Details</a>
     </div>
 
     <h2>Shifts</h2>
