@@ -80,17 +80,6 @@ async function getShiftById(sid) {
 }
 
 /**
- * Retrieves an assignment document mapping a specific employee to a specific shift.
- * 
- * @param {string} eid - The employee ID.
- * @param {string} sid - The shift ID.
- * @returns {Promise<Object|null>} The assignment document if found, null otherwise.
- */
-async function getAssignment(eid, sid) {
-    return await db.collection('assignments').findOne({ employeeId: eid, shiftId: sid })
-}
-
-/**
  * Retrieves all assignment documents for a specific employee.
  * 
  * @param {string} eid - The employee ID.
@@ -98,16 +87,6 @@ async function getAssignment(eid, sid) {
  */
 async function getAssignmentsByEmployee(eid) {
     return await db.collection('assignments').find({ employeeId: eid }).toArray()
-}
-
-/**
- * Inserts a new assignment document into the 'assignments' collection.
- * 
- * @param {Object} assignment - The assignment object containing employeeId and shiftId.
- * @returns {Promise<void>}
- */
-async function addAssignment(assignment) {
-    await db.collection('assignments').insertOne(assignment)
 }
 
 /**
@@ -130,8 +109,6 @@ module.exports = {
     addEmployee,
     updateEmployee,
     getShiftById,
-    getAssignment,
     getAssignmentsByEmployee,
-    addAssignment,
     getConfig
 }

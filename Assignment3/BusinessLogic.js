@@ -30,28 +30,6 @@ function isValidPhone(phone) {
 }
 
 /**
- * Validates the employee ID format (must start with 'E' followed by numbers).
- * 
- * @param {string} employeeId - The employee ID string to validate.
- * @returns {boolean} True if valid, false otherwise.
- */
-function isValidEmployeeId(employeeId) {
-    const employeeIdRegex = /^E\d+$/
-    return employeeIdRegex.test(employeeId)
-}
-
-/**
- * Validates the shift ID format (must start with 'S' followed by numbers).
- * 
- * @param {string} shiftId - The shift ID string to validate.
- * @returns {boolean} True if valid, false otherwise.
- */
-function isValidShiftId(shiftId) {
-    const shiftIdRegex = /^S\d+$/
-    return shiftIdRegex.test(shiftId)
-}
-
-/**
  * Validates an employee name (letters, spaces, hyphens, and apostrophes only, must not be empty).
  * 
  * @param {string} name - The name string to validate.
@@ -260,57 +238,6 @@ async function addEmployeeLogic(name, phone) {
     return 'Employee added...'
 }
 
-/**
- * Assigns an employee to a shift, enforcing configuration constraints and rules.
- * 
- * @param {string} eid - The employee ID.
- * @param {string} sid - The shift ID.
- * @returns {Promise<string>} A status message indicating success or the reason for failure.
- */
-async function assignShiftLogic(eid, sid) {
-    if (!isValidEmployeeId(eid)) {
-        return 'Invalid Employee ID format'
-    }
-    if (!isValidShiftId(sid)) {
-        return 'Invalid Shift ID format'
-    }
-
-    const emp = await persistence.getEmployeeById(eid)
-    if (!emp) {
-        return 'Employee does not exist'
-    }
-    
-    const targetShift = await persistence.getShiftById(sid)
-    if (!targetShift) {
-        return 'Shift does not exist'
-    }
-    
-    const existingAssignment = await persistence.getAssignment(eid, sid)
-    if (existingAssignment) {
-        return 'Employee already assigned to shift'
-    }
-
-    const config = await persistence.getConfig() 
-    let newShiftDuration = computeShiftDuration(targetShift.startTime, targetShift.endTime)
-
-    let currentHours = 0
-    const employeeAssignments = await persistence.getAssignmentsByEmployee(eid)
-    
-    for (const a of employeeAssignments) {
-        const s = await persistence.getShiftById(a.shiftId)
-        if (s && s.date === targetShift.date) {
-            currentHours += computeShiftDuration(s.startTime, s.endTime)
-        }
-    }
-
-    if ((currentHours + newShiftDuration) > config.maxDailyHours) {
-        return `Unable to assign shift: Employee reaches ${currentHours + newShiftDuration} hours on ${targetShift.date}. Limit is ${config.maxDailyHours}.`
-    }
-    
-    const newAssignment = { employeeId: eid, shiftId: sid }
-    await persistence.addAssignment(newAssignment)
-    return 'Shift Recorded'
-}
 
 module.exports = {
     connect,
@@ -322,6 +249,4 @@ module.exports = {
     getEmployeeDetails,
     editEmployeeLogic,
     addEmployeeLogic,
-    assignShiftLogic,
-    isValidEmployeeId
 }
