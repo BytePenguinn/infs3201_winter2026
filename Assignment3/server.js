@@ -23,6 +23,25 @@ app.get('/', async (req, res) => {
 })
 
 /**
+ * Route handler for the Employee Details page.
+ * Fetches employee information and their assigned shifts, then renders the employee view.
+ * 
+ * @param {express.Request} req - The Express request object.
+ * @param {express.Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
+app.get('/employee/:eid', async (req, res) => {
+    const eid = req.params.eid
+    const data = await logic.getEmployeeDetails(eid)
+    
+    if (!data) {
+        return res.status(404).send('Employee not found')
+    }
+
+    res.render('employee', data)
+})
+
+/**
  * Connects to the database and starts the Express web server.
  * 
  * @returns {Promise<void>}

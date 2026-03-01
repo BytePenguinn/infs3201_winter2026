@@ -65,9 +65,6 @@ function isValidName(name) {
 /**
  * Calculates the number of hours between two time strings.
  * 
- * LLM Used: ChatGPT
- * Prompt Used: "Write a javascript function computeShiftDuration(startTime, endTime) which would tell you how many hours (as a real number) between the startTime and endTime"
- * 
  * @param {string} startTime - Start time in HH:MM format.
  * @param {string} endTime - End time in HH:MM format.
  * @returns {number} The duration in hours.
@@ -80,6 +77,54 @@ function computeShiftDuration(startTime, endTime) {
     const diffHrs = diffMs / (1000 * 60 * 60)
     
     return diffHrs
+}
+
+/**
+ * Determines if a given time is before 12:00 PM (Noon).
+ * 
+ * @param {string} timeStr - The time string in "HH:MM" format.
+ * @returns {boolean} True if the hour is less than 12, false otherwise.
+ */
+function isBeforeNoon(timeStr) {
+    const hour = parseInt(timeStr.split(':')[0], 10)
+    return hour < 12
+}
+
+/**
+ * Sorts an array of shifts by date and time in ascending order using Bubble Sort.
+ * Strict avoidance of Array.prototype.sort() callback.
+ * 
+ * @param {Array<Object>} shifts - The array of shift objects to sort.
+ * @returns {Array<Object>} The sorted array.
+ */
+function sortShifts(shifts) {
+    let n = shifts.length
+    let swapped = true
+    
+    while (swapped) {
+        swapped = false
+        for (let i = 0; i < n - 1; i++) {
+            let swapNeeded = false
+            
+            if (shifts[i].date > shifts[i+1].date) {
+                swapNeeded = true
+            } else if (shifts[i].date === shifts[i+1].date) {
+                if (shifts[i].startTime > shifts[i+1].startTime) {
+                    swapNeeded = true
+                }
+            }
+            
+            if (swapNeeded) {
+                let temp = shifts[i]
+                shifts[i] = shifts[i+1]
+                shifts[i+1] = temp
+                swapped = true
+            }
+        }
+        n--
+    }
+    
+    return shifts
 }
 
 /**
@@ -109,6 +154,40 @@ async function getShiftById(sid) {
  */
 async function getAssignmentsByEmployee(eid) {
     return await persistence.getAssignmentsByEmployee(eid)
+}
+
+/**
+ * Gathers complete details and properly formatted/sorted shifts for an employee.
+ * 
+ * @param {string} eid - The employee ID.
+ * @returns {Promise<Object|null>} An object containing the employee details and an array of their shifts.
+ */
+async function getEmployeeDetails(eid) {
+    const employee = await persistence.getEmployeeById(eid)
+    if (!employee) return null
+
+    const assignments = await persistence.getAssignmentsByEmployee(eid)
+    const rawShifts = []
+
+    for (const a of assignments) {
+        const s = await persistence.getShiftById(a.shiftId)
+        if (s) {
+            rawShifts.push({
+                date: s.date,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                isMorningStart: isBeforeNoon(s.startTime),
+                isMorningEnd: isBeforeNoon(s.endTime)
+            })
+        }
+    }
+
+    const sortedShifts = sortShifts(rawShifts)
+
+    return {
+        employee: employee,
+        shifts: sortedShifts
+    }
 }
 
 /**
@@ -201,6 +280,7 @@ module.exports = {
     getEmployees,
     getShiftById,
     getAssignmentsByEmployee,
+    getEmployeeDetails,
     addEmployeeLogic,
     assignShiftLogic,
     isValidEmployeeId
