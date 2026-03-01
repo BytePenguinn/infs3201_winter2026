@@ -1,9 +1,9 @@
 const { MongoClient } = require('mongodb')
 const fs = require('fs/promises')
 
-const uri = 'mongodb://127.0.0.1:27017'
+const uri = 'mongodb+srv://60304878:<db_password>@web2.o0ci94q.mongodb.net/?appName=Web2'
 const client = new MongoClient(uri)
-const dbName = 'scheduleDB'
+const dbName = 'infs3201_winter2026'
 let db
 
 async function connect() {
